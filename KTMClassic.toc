@@ -1,0 +1,17 @@
+## Interface: 11400
+## Title: KTMClassic
+## Notes: Simple threat meter for compatibility with KTM.
+## Author: Zela
+## Version: 1.0.2
+## SavedVariables: KTMClassicDB
+## SavedVariablesPerCharacter: KTMC_Options
+
+## OptionalDeps: LibStub, AceGUI-3.0, AceConfig-3.0, LibSharedMedia-3.0, AceGUI-3.0-SharedMediaWidgets, LibThreatClassic2
+## X-Embeds: LibStub, Ace3, LibSharedMedia-3.0, AceGUI-3.0-SharedMediaWidgets, LibThreatClassic2
+
+## X-Category: Combat
+
+## X-License: MIT
+## X-Website: https://github.com/dfherr/ThreatClassic2
+
+ThreatClassic2.xml
