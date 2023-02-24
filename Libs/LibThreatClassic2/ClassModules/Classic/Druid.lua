@@ -54,7 +54,7 @@ local tranquilityIDs = {740, 8918, 9862, 9863}
 function Druid:ClassInit()
 
 	-- Growl
-	self.CastLandedHandlers[6795] = self.Growl
+	self.CastSuccessHandlers[6795] = self.Growl
 
 	for k, v in pairs(threatValues.faerieFire) do
 		self.CastSuccessHandlers[k] = self.FaerieFire
