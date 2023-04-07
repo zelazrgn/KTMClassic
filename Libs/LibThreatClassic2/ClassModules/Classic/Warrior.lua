@@ -258,7 +258,7 @@ function Warrior:Taunt(spellID, target)
 end
 
 function Warrior:TauntNextHook(timestamp, subEvent, hideCaster, sourceGUID, sourceName, sourceFlags, sourceRaidFlags, destGUID, destName, destFlags, destRaidFlags, spellID)
-	if pendingTauntTarget and (subEvent ~= "SPELL_MISSED" or spellID ~= 355) then
+	if pendingTauntTarget and (subEvent ~= "SPELL_MISSED" and spellID ~= 355) then
 		self:AddTargetThreat(pendingTauntTarget, pendingTauntOffset)
 		ThreatLib:PublishThreat()
 	end
