@@ -682,8 +682,12 @@ function prototype:COMBAT_LOG_EVENT_UNFILTERED(event, ...)
 
 	guidLookup[sourceGUID] = sourceName
 	guidLookup[destGUID] = destName
-	nameLookup[sourceName] = sourceGUID
-	nameLookup[destName] = destGUID
+	if sourceName ~= nil then
+		nameLookup[sourceName] = sourceGUID
+	end
+	if destName ~= nil then
+		nameLookup[destName] = destGUID
+	end
 
 	-- We don't need to handle SPELL_SUMMON, and it's causing issues with shaman totems. Just kill it.
 	if subEvent == "SPELL_SUMMON" then return end
