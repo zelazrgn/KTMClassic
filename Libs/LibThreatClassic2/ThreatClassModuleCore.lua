@@ -182,6 +182,7 @@ local thunderfury = {
 }
 
 local guidLookup = ThreatLib.GUIDNameLookup
+local nameLookup = ThreatLib.NameGUIDLookup
 
 local new, del, newHash, newSet = ThreatLib.new, ThreatLib.del, ThreatLib.newHash, ThreatLib.newSet
 
@@ -681,6 +682,8 @@ function prototype:COMBAT_LOG_EVENT_UNFILTERED(event, ...)
 
 	guidLookup[sourceGUID] = sourceName
 	guidLookup[destGUID] = destName
+	nameLookup[sourceName] = sourceGUID
+	nameLookup[destName] = destGUID
 
 	-- We don't need to handle SPELL_SUMMON, and it's causing issues with shaman totems. Just kill it.
 	if subEvent == "SPELL_SUMMON" then return end

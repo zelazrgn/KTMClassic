@@ -182,10 +182,13 @@ ThreatLib.lastCompatible = LAST_BACKWARDS_COMPATIBLE_REVISION
 ThreatLib.currentPartySize = 0
 ThreatLib.latestSeenSender = nil
 ThreatLib.partyUnits = {}
+ThreatLib.ClassMap = {}
 
 ThreatLib.GUIDNameLookup = setmetatable({}, { __index = function() return "<unknown>" end })
+ThreatLib.NameGUIDLookup = setmetatable({}, { __index = function() return nil end })
 ThreatLib.threatLog = {}
 local guidLookup = ThreatLib.GUIDNameLookup
+local nameLookup = ThreatLib.NameGUIDLookup
 
 local threatTargets = ThreatLib.threatTargets
 local lastPublishedThreat = ThreatLib.lastPublishedThreat
@@ -745,6 +748,7 @@ end
 function ThreatLib:PLAYER_ENTERING_WORLD(force)
 	if UnitGUID("player") then
 		guidLookup[UnitGUID("player")] = UnitName("player")
+		nameLookup[UnitName("player")] = UnitGUID("player")
 	end
 	local previousRunning = self.running
 	local inInstance, kind = IsInInstance()
@@ -879,19 +883,27 @@ function ThreatLib:UpdatePartyGUIDs()
 	local playerFmt = inRaid and "raid%d" or "party%d"
 	local petFmt = inRaid and "raidpet%d" or "partypet%d"
 
+	local classFilename
+	local classId
+
 	for i = 1, self.currentPartySize, 1 do
 		local unitID = format(playerFmt, i)
 		local pGUID = UnitGUID(unitID)
 
 		if pGUID then
 			guidLookup[pGUID] = UnitName(unitID)
+			nameLookup[UnitName(unitID)] = pGUID
 
 			-- lookup pet (if existing)
 			local petID = format(petFmt, i)
 			local petGUID = UnitGUID(petID)
 			if petGUID then
 				guidLookup[petGUID] = UnitName(petID)
+				nameLookup[UnitName(petID)] = petGUID
 			end
+
+			classFilename, classId = UnitClassBase(unitID)
+			ThreatLib.ClassMap[pGUID] = classId
 		end
 	end
 end
@@ -979,15 +991,10 @@ function ThreatLib.OnCommReceive:KTM_THREAT_UPDATE(sender, distribution, msg)
 	local unitid
 	local unitGUID
 
-	local unit = IsInRaid() and "raid" or "party"
+	local classFilename
+	local classId
 
-	for i = 1, 40 do
-		unitid = unit..i
-		if UnitName(unitid) == sender then
-			unitGUID = UnitGUID(unitid)
-			break
-		end
-	end
+	unitGUID = nameLookup[sender]
 
 	if unitGUID then
 		local target = "global"
@@ -1650,7 +1657,12 @@ end
 -- Meele range 1.1 else 1.3
 ------------------------------------------------------------------------
 function ThreatLib:GetPullAggroRangeModifier(unitGUID, targetGUID)
-	return 1.1 -- TODO
+	local classId = ThreatLib.ClassMap[unitGUID]
+	if classId == nil or classId == 1 or classId == 4 then -- rogue or warrior or unknown
+		return 1.1
+	else
+		return 1.3
+	end
 end
 
 ------------------------------------------------------------------------
