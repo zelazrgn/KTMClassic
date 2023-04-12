@@ -1443,7 +1443,7 @@ function ThreatLib:GetThreat(player_guid, target_guid, target, d)
 		if target then
 			local unitName = UnitName(target)
 			if unitName == self.masterTarget then
-				threatsum = threatsum + (data['mt-'..self.masterTarget] or 0)
+				threatsum = threatsum + (data["mt-"..self.masterTarget] or 0)
 			end
 		end
 	else
@@ -1572,11 +1572,11 @@ end
 -- Returns the maximum threat value and the GUID of the player with the maximum threat
 -- on the given target
 ------------------------------------------------------------------------
-function ThreatLib:GetMaxThreatOnTarget(target_guid)
+function ThreatLib:GetMaxThreatOnTarget(target_guid, target)
 	local maxVal = 0
 	local maxGUID = nil
 	for k in pairs(threatTargets) do
-		local v = self:GetThreat(k, target_guid)
+		local v = self:GetThreat(k, target_guid, target)
 		if v > maxVal then
 			maxVal = v
 			maxGUID = k
@@ -1840,7 +1840,7 @@ function ThreatLib:UnitDetailedThreatSituation(unit, target)
 	end
 
 	-- maxThreatValue can never be 0 as unit's threatValue is already greater than 0
-	local maxThreatValue, maxGUID = self:GetMaxThreatOnTarget(targetGUID)
+	local maxThreatValue, maxGUID = self:GetMaxThreatOnTarget(targetGUID, target)
 	local unitPullAggroRangeMod = self:GetPullAggroRangeModifier(unitGUID, targetGUID)
 
 	local targetTarget = target .. "-target"
@@ -1880,7 +1880,7 @@ function ThreatLib:UnitDetailedThreatSituation(unit, target)
 	-- than 130% threat and some meeles have more than 110% threat of targetTarget, we simplify this function 
 	-- and save some CPU by only checking against the target with the highest threat.
 
-	local targetTargetThreatValue = self:GetThreat(targetTargetGUID, targetGUID) or 0
+	local targetTargetThreatValue = self:GetThreat(targetTargetGUID, targetGUID, target) or 0
 	local maxPullAggroRangeMod = self:GetPullAggroRangeModifier(maxGUID, targetGUID)
 
 	local currentTankThreatValue
@@ -1931,13 +1931,13 @@ function ThreatLib:UnitThreatPercentageOfLead(unit, target)
 	local unitGUID, targetGUID = UnitGUID(unit), UnitGUID(target)
 	if not (unitGUID and targetGUID) then return 0 end
 
-	local unitValue = self:GetThreat(unitGUID, targetGUID)
+	local unitValue = self:GetThreat(unitGUID, targetGUID, target)
 	if unitValue == 0 then return 0 end
 
 	local maxValue = 0
 	for otherGUID in pairs(threatTargets) do
 		if otherGUID ~= unitGUID then
-			local value = self:GetThreat(otherGUID, targetGUID)
+			local value = self:GetThreat(otherGUID, targetGUID, target)
 			if value > maxValue then maxValue = value end
 		end
 	end
