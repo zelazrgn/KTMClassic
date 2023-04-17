@@ -183,12 +183,16 @@ ThreatLib.currentPartySize = 0
 ThreatLib.latestSeenSender = nil
 ThreatLib.partyUnits = {}
 ThreatLib.ClassMap = {}
+ThreatLib.CachedMeleeDruid = {}
+ThreatLib.CachedMeleeDruidTime = {}
 
 ThreatLib.GUIDNameLookup = setmetatable({}, { __index = function() return "<unknown>" end })
 ThreatLib.NameGUIDLookup = setmetatable({}, { __index = function() return nil end })
+ThreatLib.GUIDUnitIdLookup = setmetatable({}, { __index = function() return nil end })
 ThreatLib.threatLog = {}
 local guidLookup = ThreatLib.GUIDNameLookup
 local nameLookup = ThreatLib.NameGUIDLookup
+local guidToUnitIdLookup = ThreatLib.GUIDUnitIdLookup
 
 local threatTargets = ThreatLib.threatTargets
 local lastPublishedThreat = ThreatLib.lastPublishedThreat
@@ -893,6 +897,7 @@ function ThreatLib:UpdatePartyGUIDs()
 		if pGUID then
 			guidLookup[pGUID] = UnitName(unitID)
 			nameLookup[UnitName(unitID)] = pGUID
+			guidToUnitIdLookup[pGUID] = unitID
 
 			-- lookup pet (if existing)
 			local petID = format(petFmt, i)
@@ -900,6 +905,7 @@ function ThreatLib:UpdatePartyGUIDs()
 			if petGUID then
 				guidLookup[petGUID] = UnitName(petID)
 				nameLookup[UnitName(petID)] = petGUID
+				guidToUnitIdLookup[petGUID] = petID
 			end
 
 			classFilename, classId = UnitClassBase(unitID)
@@ -1654,11 +1660,37 @@ end
 --		string - GUID of the target to get range modifier for
 -- Notes:
 -- Returns the modifier for pulling aggro based on range to the target
--- Meele range 1.1 else 1.3
 ------------------------------------------------------------------------
 function ThreatLib:GetPullAggroRangeModifier(unitGUID, targetGUID)
 	local classId = ThreatLib.ClassMap[unitGUID]
-	if classId == nil or classId == 1 or classId == 4 then -- rogue or warrior or unknown
+
+	local isMeleeDruid = false
+	if classId == 11 then -- druid
+		local t = GetTime()
+		local cacheStanceTime = ThreatLib.CachedMeleeDruidTime[unitGUID]
+		if cacheStanceTime ~= nil and t - cacheStanceTime < 5 then
+			isMeleeDruid = ThreatLib.CachedMeleeDruid[unitGUID]
+		else
+			local unitId = guidToUnitIdLookup[unitGUID]
+			local spellId
+			for i = 1, 40 do
+				spellId = select(10, UnitBuff(unitId, i))
+				if spellId == nil then
+					-- assume they are a melee druid if buff capped
+					isMeleeDruid = i >= 32
+					break
+				end
+				if spellId == 9634 or spellId == 5487 or spellId == 768 then
+					isMeleeDruid = true
+					break
+				end
+			end
+			ThreatLib.CachedMeleeDruid[unitGUID] = isMeleeDruid
+			ThreatLib.CachedMeleeDruidTime[unitGUID] = t
+		end
+	end
+
+	if classId == nil or classId == 1 or classId == 4 or isMeleeDruid then -- rogue, warrior, melee druid or unknown
 		return 1.1
 	else
 		return 1.3
