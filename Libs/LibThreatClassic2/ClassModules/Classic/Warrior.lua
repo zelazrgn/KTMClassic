@@ -301,7 +301,7 @@ function Warrior:Thunderclap(spellID)
 end
 
 function Warrior:Execute(amount)
-	return amount * 1.25
+	return amount
 end
 
 function Warrior:Disarm(spellID)
