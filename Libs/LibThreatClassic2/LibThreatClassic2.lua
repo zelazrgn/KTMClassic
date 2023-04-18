@@ -762,10 +762,10 @@ function ThreatLib:PLAYER_ENTERING_WORLD(force)
 		-- in a battleground that is not AV.
 		self:Debug("Disabling, in a PVP instance")
 		self.running = false
-	elseif IsResting() then
-		-- in a city/inn
-		self:Debug("Disabling, resting")
-		self.running = false
+	-- elseif IsResting() then -- Disabled rested check so players can test on the training dummys on the Everlook server
+	-- 	-- in a city/inn
+	-- 	self:Debug("Disabling, resting")
+	-- 	self.running = false
 	elseif not self.alwaysRunOnSolo and not UnitExists("pet") and GetNumGroupMembers() == 0 then
 		-- all alone
 		self:Debug("Disabling, so lonely :'(")
