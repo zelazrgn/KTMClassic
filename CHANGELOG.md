@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.1
+
+* Disabled rested check so players can test on the training dummys on the Everlook server
+
 ## v1.0.6
 
 * feral druids now tracked as melee
