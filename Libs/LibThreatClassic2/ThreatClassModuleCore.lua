@@ -178,7 +178,6 @@ local prototype = {}
 -- this is used for tracking that the damage got applied and ignoring the next debuff that follows
 local thunderfury = {
 	lastMobGUID = nil,
-	lastHitTimestamp = 0,
 }
 
 local guidLookup = ThreatLib.GUIDNameLookup
@@ -328,17 +327,15 @@ function prototype:OnInitialize()
 	end
 
 	-- thunderfury; apply debuff threat, unless we just had a thunderfury spell damage hit on the same target
-	-- effectively skips the second debuff because spell damage is always applied right before it on the same timestamp
 	self.MobSpellNameDebuffHandlers[GetSpellInfo(21992)] = function(self, target, timestamp)
-		if(thunderfury.lastMobGUID ~= target or thunderfury.lastHitTimestamp + 0.01 < timestamp) then
+		if thunderfury.lastMobGUID ~= target then
 			self:AddTargetThreat(target, 145 * self:threatMods())
 		end
 	end
 	-- thunderfury; apply direct hit bonus threat (as a substitute for direct hit attack speed slow threat)
 	self.SpellDamageSpellNameHandlers[GetSpellInfo(21992)] = function(self, target, timestamp)
-		self:AddTargetThreat(target, 90 * self:threatMods())
+		self:AddTargetThreat(target, (145 + 90) * self:threatMods())
 		thunderfury.lastMobGUID = target
-		thunderfury.lastHitTimestamp = timestamp
 	end
 
 	-- Pain Suppression - Maybe 44416?
