@@ -970,6 +970,10 @@ end
 function ThreatLib.OnCommReceive:KTM_SET_MASTER_TARGET(sender, distribution, msg)
 	if not msg then return end
 
+	if not self:IsGroupOfficer(sender) then
+		return
+	end
+
 	local newmt = strsub(msg, 6)
 
 	if strlen(newmt) > 0 then
@@ -980,6 +984,10 @@ end
 
 function ThreatLib.OnCommReceive:KTM_CLEAR(sender, distribution, msg)
 	if not msg then return end
+
+	if not self:IsGroupOfficer(sender) then
+		return
+	end
 	
 	if msg == "ear" then --
 		print(format("KTM: The raid threat meter was cleared by |cffffff00%s|r.", sender))
@@ -1348,8 +1356,11 @@ do
 	end
 end
 
-function ThreatLib:KTMSetMasterTarget()
-	local targetName = UnitName("target")
+function ThreatLib:KTMSetMasterTarget(targetName)
+	if not self:IsGroupOfficer("player") then
+		return
+	end
+
 	if targetName then
 		self:SendCommMessage(self.ktm_prefix, "target " .. targetName, self:GroupDistribution())
 	else
@@ -1359,6 +1370,10 @@ function ThreatLib:KTMSetMasterTarget()
 end
 
 function ThreatLib:KTMClearThreat()
+	if not self:IsGroupOfficer("player") then
+		return
+	end
+
 	self:SendCommMessage(self.ktm_prefix, "clear", self:GroupDistribution())
 	self:ClearThreat()
 end

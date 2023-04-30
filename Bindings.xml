@@ -1,0 +1,8 @@
+<Bindings>
+	<Binding name = "CLICK KTMClassic_MTButton:LeftButton" header = "KTMCLASSIC" category = "ADDONS">
+		<!-- Set Master Target -->
+	</Binding>
+	<Binding name = "CLICK KTMClassic_ClearButton:LeftButton" category = "ADDONS">
+		<!-- Clear Raid Threat -->
+	</Binding>
+</Bindings>

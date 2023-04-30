@@ -80,6 +80,10 @@ LSM:Register("font", "NotoSans SemiCondensedBold", [[Interface\AddOns\KTMClassic
 LSM:Register("font", "Standard Text Font", _G.STANDARD_TEXT_FONT) -- register so it's usable as a default in config
 LSM:Register("statusbar", "TC2 Default", [[Interface\ChatFrame\ChatFrameBackground]]) -- register so it's usable as a default in config
 
+BINDING_HEADER_KTMCLASSIC = "KTMClassic"
+setglobal("BINDING_NAME_CLICK KTMClassic_MTButton:LeftButton", "Set Master Target")
+setglobal("BINDING_NAME_CLICK KTMClassic_ClearButton:LeftButton", "Clear Raid Threat")
+
 
 local SoundChannels = {
 	["Master"] = L.soundChannel_master,
@@ -147,6 +151,16 @@ local function CreateFS(parent)
     fs:SetFont(LSM:Fetch("font", C.font.name), C.font.size, C.font.style)
     return fs
 end
+
+local function CreateButton(parent, name)
+    local button = CreateFrame('Button', name, parent, BackdropTemplateMixin and "BackdropTemplate")
+    button:RegisterForClicks('AnyDown')
+    button.parent = parent
+    button.highlight = button:CreateTexture(nil, 'HIGHLIGHT')
+    button.label = CreateFS(button)
+    return button
+end
+
 
 local function CreateStatusBar(parent, header)
     -- StatusBar
@@ -385,7 +399,21 @@ local function CheckStatus()
 
 	CheckVisibility()
 
-	if UnitExists(TC2.playerTarget) then
+	local buttonSpace = 0
+
+	if ThreatLib:IsGroupOfficer("player") then
+		TC2.frame.header.clearButton.label:SetText('Clr')
+		TC2.frame.header.clearButton.label:Show()
+		TC2.frame.header.mtButton:SetText('MT')
+		buttonSpace = 70 -- buttonSpace + TC2.frame.header.clearButton:GetWidth() * 2
+		TC2.frame.header.mtButton:Show()
+		TC2.frame.header.clearButton:Show()
+	else
+		TC2.frame.header.mtButton:Hide()
+		TC2.frame.header.clearButton:Hide()
+	end
+
+	if ThreatLib.masterTarget or UnitExists(TC2.playerTarget) then
 		-- wipe
 		wipe(TC2.threatData)
 
@@ -408,11 +436,14 @@ local function CheckStatus()
 
 		TC2:UpdateThreatBars()
 
+
+		
+
 		-- set header unit name
 		local headerText = L.gui_threat
 		if ThreatLib.masterTarget then
 			headerText = "MT: " .. ThreatLib.masterTarget
-			headerText = TruncateString(headerText, floor(TC2.frame.header:GetWidth() / (C.font.size * 0.5)), true)
+			headerText = TruncateString(headerText, floor((TC2.frame.header:GetWidth() - buttonSpace) / (C.font.size * 0.5)), true)
 		end
 		TC2.frame.header.text:SetText(headerText)
 	else
@@ -556,6 +587,27 @@ local function UpdateFont(fs)
 	fs:SetShadowOffset(C.font.shadow and 1 or 0, C.font.shadow and -1 or 0)
 end
 
+local function UpdateButton(button)
+	local parent = button.parent
+	button:ClearAllPoints()
+	button:SetWidth(35)
+	button:SetHeight(C.bar.height)
+
+	local highlight = button.highlight
+	highlight:SetAllPoints()
+	highlight:SetColorTexture(1, 1, 1, .2)
+
+	local label = button.label
+	label:SetAllPoints(button)
+	label:SetJustifyH('CENTER')
+	label:SetJustifyV('CENTER')
+
+	label:SetWidth(button:GetWidth())
+	label:SetHeight(button:GetHeight())
+
+	UpdateFont(label)
+end
+
 function TC2:UpdateFrame()
 	local frame = self.frame
 
@@ -615,6 +667,11 @@ function TC2:UpdateFrame()
         frame.header.text:SetText(format("%s%s", L.gui_threat, ""))
 
         UpdateFont(frame.header.text)
+
+        UpdateButton(frame.header.clearButton, frame.header)
+        UpdateButton(frame.header.mtButton, frame.header.clearButton)
+        frame.header.clearButton:SetPoint("TOPRIGHT", frame.header, "TOPRIGHT", 0, 0)
+        frame.header.mtButton:SetPoint("TOPRIGHT", frame.header.clearButton, "TOPLEFT", 0, 0)
 
         frame.header:Show()
     else
@@ -1022,8 +1079,21 @@ function TC2:SetupFrame()
 	self.frame.header:EnableMouse(true)
 
 	self.frame.header.text = CreateFS(self.frame.header)
-	self.frame.header.text:SetPoint("LEFT", self.frame.header, 4, -1)
+	self.frame.header.text:SetPoint("TOPLEFT", self.frame.header, "TOPLEFT", 4, 0)
+	self.frame.header.text:SetPoint("BOTTOMLEFT", self.frame.header, "BOTTOMLEFT", 4, 0)
 	self.frame.header.text:SetJustifyH("LEFT")
+	self.frame.header.text:SetJustifyV('CENTER')
+
+	self.frame.header.clearButton = CreateButton(self.frame.header, "KTMClassic_ClearButton")
+	self.frame.header.mtButton = CreateButton(self.frame.header, "KTMClassic_MTButton")
+	self.frame.header.clearButton.label:SetText('Clr')
+	self.frame.header.clearButton:SetScript('OnClick', function(_, button)
+		ThreatLib:KTMClearThreat()
+	end)
+	self.frame.header.mtButton.label:SetText('MT')
+	self.frame.header.mtButton:SetScript('OnClick', function(_, button)
+		ThreatLib:KTMSetMasterTarget(UnitName("target"))
+	end)
 
 	self:UpdateFrame()
 end
@@ -1672,51 +1742,106 @@ TC2.configTable = {
 	},
 }
 
+TC2_PrintFormat = "|c00f7f26c%s|r"
+
+function TC2:SendMessage(msg)
+    local msg = string.format(TC2_PrintFormat, msg)
+    DEFAULT_CHAT_FRAME:AddMessage(string.format(TC2_PrintFormat, "KTMClassic: ") .. msg)
+end
+
+function TC2:VerifyCommand(name, target_args, given_args, target_args_max)
+    if target_args == given_args or
+            (target_args_max ~= nil and
+            given_args > target_args and given_args <= target_args_max) then
+        return true
+    end
+
+    if target_args_max then
+        TC2:SendMessage(name .. " command expects " .. target_args .. "-" .. target_args_max .. " arguments, " .. given_args .. " given.")
+    else
+        TC2:SendMessage(name .. " command expects " .. target_args .. " arguments, " .. given_args .. " given.")
+    end
+
+    
+
+    return false
+end
+
 SLASH_TC2_SLASHCMD1 = "/tc2"
 SLASH_TC2_SLASHCMD2 = "/threat2"
 SLASH_TC2_SLASHCMD2 = "/threatclassic2"
 SLASH_TC2_SLASHCMD3 = "/ktm"
-SlashCmdList["TC2_SLASHCMD"] = function(arg)
-	arg = arg:lower()
+SlashCmdList["TC2_SLASHCMD"] = function(args)
+    words = {}
+    for word in args:gmatch("%w+") do table.insert(words, word) end
 
-	if arg == "toggle" then
-		C.general.hideAlways = not C.general.hideAlways
-		CheckStatus();
-	elseif arg == "debug" then
-		ThreatLib.DebugEnabled = not ThreatLib.DebugEnabled
-		
-		if ThreatLib.DebugEnabled then
-			print("Debug enabled. Output in Chatframe 4.")
-		else
-			print("Debug disabled.")
-		end
-	elseif arg == "runsolo" then
-		ThreatLib.alwaysRunOnSolo = not ThreatLib.alwaysRunOnSolo
-		if ThreatLib.alwaysRunOnSolo then
-			print("LibThreatClassic2 solo mode enabled.")
-		else
-			print("LibThreatClassic2 solo mode disabled.")
-		end
-	elseif arg == "logthreat" then
-		ThreatLib.LogThreat = not ThreatLib.LogThreat
-		if ThreatLib.LogThreat then
-			print("LibThreatClassic2 logThreat enabled.")
-			if not ThreatLib.DebugEnabled then
-				print("Debug is disabled. Also enabling debug mode.")
-				ThreatLib.DebugEnabled = true
-			end
-		else 
-			print("LibThreatClassic2 LogThreat disabled.")
-		end 
-	elseif arg == "ver" or arg == "version" then
-		CheckVersion()
-	elseif arg == "ver2" or arg == "version2" then
-		NotifyOldClients()
-	elseif arg == "mt" then
-		ThreatLib:KTMSetMasterTarget()
-	elseif arg == "clear" then
-		ThreatLib:KTMClearThreat()
-	else
-		LibStub("AceConfigDialog-3.0"):Open("KTMClassic")
-	end	
+    words_case = {}
+
+    local numWords = 0
+
+    for i = 1, table.getn(words) do
+        words_case[i] = words[i]
+        words[i] = strlower(words[i])
+        numWords = numWords + 1
+    end
+
+    local cmd = words[1]
+
+    if cmd == "toggle" then
+        if TC2:VerifyCommand("toggle", 1, numWords) then
+            C.general.hideAlways = not C.general.hideAlways
+            CheckStatus();
+        end
+    elseif cmd == "debug" then
+        if TC2:VerifyCommand("debug", 1, numWords) then
+            ThreatLib.DebugEnabled = not ThreatLib.DebugEnabled
+            if ThreatLib.DebugEnabled then
+                print("Debug enabled. Output in Chatframe 4.")
+            else
+                print("Debug disabled.")
+            end
+        end
+    elseif cmd == "runsolo" then
+        if TC2:VerifyCommand("runsolo", 1, numWords) then
+            ThreatLib.alwaysRunOnSolo = not ThreatLib.alwaysRunOnSolo
+            if ThreatLib.alwaysRunOnSolo then
+                print("LibThreatClassic2 solo mode enabled.")
+            else
+                print("LibThreatClassic2 solo mode disabled.")
+            end
+        end
+    elseif cmd == "logthreat" then
+        if TC2:VerifyCommand("logthreat", 1, numWords) then
+            ThreatLib.LogThreat = not ThreatLib.LogThreat
+            if ThreatLib.LogThreat then
+                print("LibThreatClassic2 logThreat enabled.")
+                if not ThreatLib.DebugEnabled then
+                    print("Debug is disabled. Also enabling debug mode.")
+                    ThreatLib.DebugEnabled = true
+                end
+            else
+                print("LibThreatClassic2 LogThreat disabled.")
+            end
+        end
+    elseif cmd == "ver" or cmd == "version" then
+        if TC2:VerifyCommand("version", 1, numWords) then
+            CheckVersion()
+        end
+    elseif cmd == "ver2" or cmd == "version2" then
+        if TC2:VerifyCommand("version2", 1, numWords) then
+            CheckVersion()
+        end
+    elseif cmd == "mt" then
+        if numWords == 1 then
+            ThreatLib:KTMSetMasterTarget(UnitName("target"))
+        else
+            ThreatLib:KTMSetMasterTarget(strsub(args, 4))
+        end
+    elseif cmd == "clear" then
+        if TC2:VerifyCommand("clear", 1, numWords) then
+            ThreatLib:KTMClearThreat()
+        end
+    else
+        LibStub("AceConfigDialog-3.0"):Open("KTMClassic")
+    end
 end
