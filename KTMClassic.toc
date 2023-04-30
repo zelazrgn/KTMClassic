@@ -2,7 +2,7 @@
 ## Title: KTMClassic
 ## Notes: Simple threat meter for compatibility with KTM.
 ## Author: Zela
-## Version: 1.1
+## Version: 1.2
 ## SavedVariables: KTMClassicDB
 ## SavedVariablesPerCharacter: KTMC_Options
 
