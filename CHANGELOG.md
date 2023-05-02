@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.3
+
+* fixed onyxia knock away (on vmangos, threat is reduced even if spell misses)
+
 ## v1.2
 
 * Added UI for setting master target and clearing raid threat. Also added
