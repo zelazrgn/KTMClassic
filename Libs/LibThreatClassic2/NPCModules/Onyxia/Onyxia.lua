@@ -59,7 +59,7 @@ ThreatLib:GetModule("NPCCore-r"..MINOR):RegisterModule(ONYXIA_ID, function(Onyxi
 	function Onyxia:Init()
         self:RegisterCombatant(ONYXIA_ID, true)
 		self:RegisterSpellHandler("SPELL_CAST_SUCCESS", ONYXIA_ID, FIREBALL_ID, self.Fireball)
-		self:RegisterSpellDamageHandler(ONYXIA_ID, KNOCK_AWAY_ID, self.KnockAway)
+		self:RegisterSpellHandler("SPELL_CAST_SUCCESS", ONYXIA_ID, KNOCK_AWAY_ID, self.KnockAway)
 		self:RegisterChatEvent("yell", phase3, self.Phase3Start)
 	end
 
